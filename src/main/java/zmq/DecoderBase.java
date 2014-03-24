@@ -21,6 +21,8 @@
 
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.nio.ByteBuffer;
 
 //  Helper base class for decoders that know the amount of data to read
@@ -35,7 +37,9 @@ import java.nio.ByteBuffer;
 //  Derived class should implement individual state machine actions.
 
 abstract public class DecoderBase implements IDecoder {
-    
+
+    private static final Logger log = Logger.getLogger(DecoderBase.class);
+
     //  Where to store the read data.
     private byte[] read_buf;
     private int read_pos;
@@ -50,7 +54,7 @@ abstract public class DecoderBase implements IDecoder {
     private int state;
 
     boolean zero_copy;
-    
+
     public DecoderBase (int bufsize_)
     {
         state = -1;
@@ -94,6 +98,7 @@ abstract public class DecoderBase implements IDecoder {
     //  actually filled into the buffer. Function returns number of
     //  bytes actually processed.
     public int process_buffer(ByteBuffer buf_, int size_) {
+        log.info("Decoding buffer " + buf_);
         //  Check if we had an error in previous attempt.
         if (state() < 0)
             return -1;
@@ -133,9 +138,11 @@ abstract public class DecoderBase implements IDecoder {
             //  If there are no more data in the buffer, return.
             if (pos == size_)
                 return pos;
-            
+
             //  Copy the data from buffer to the message.
             int to_copy = Math.min (to_read, size_ - pos);
+
+            log.debug("Copying data from buffer to message. No Bytes: " +to_copy);
             buf_.get(read_buf, read_pos, to_copy);
             read_pos += to_copy;
             pos += to_copy;

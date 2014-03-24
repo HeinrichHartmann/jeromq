@@ -40,7 +40,7 @@ public class TestYQueue {
         Msg m7 = new Msg(7);
         m7.put("1234567".getBytes(ZMQ.CHARSET));
 
-        p.push(m1); 
+        p.push(m1);
         assertThat(p.back_pos(), is(1));
 
         p.push(m2); // might allocated new chunk
@@ -58,6 +58,8 @@ public class TestYQueue {
         p.push(m6); 
         
         assertThat(p.back_pos(), is(0));
+
+        System.out.println(p.contents());
 
     }
 }

@@ -20,6 +20,8 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
@@ -31,6 +33,8 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class Poller extends PollerBase implements Runnable {
+
+    private static Logger log = Logger.getLogger(Poller.class);
 
     private static class PollSet {
         protected IPollEvents handler;
@@ -113,35 +117,36 @@ public class Poller extends PollerBase implements Runnable {
     }
     
 
-    public final void set_pollin (SelectableChannel handle_)
+    public final void set_pollin (SelectableChannel handle_, String name)
     {
-        register(handle_, SelectionKey.OP_READ, false);
+        register(handle_, SelectionKey.OP_READ, false, name);
     }
     
 
     public final void reset_pollin (SelectableChannel handle_) {
-        register(handle_, SelectionKey.OP_READ, true);
+        register(handle_, SelectionKey.OP_READ, true, "-");
     }
     
     public final void set_pollout (SelectableChannel handle_)
     {
-        register(handle_,  SelectionKey.OP_WRITE, false);
+        register(handle_,  SelectionKey.OP_WRITE, false, "-");
     }
     
     public final void reset_pollout (SelectableChannel handle_) {
-        register(handle_, SelectionKey.OP_WRITE, true);
+        register(handle_, SelectionKey.OP_WRITE, true, "-");
     }
 
     public final void set_pollconnect(SelectableChannel handle_) {
-        register(handle_, SelectionKey.OP_CONNECT, false);
+        register(handle_, SelectionKey.OP_CONNECT, false, "-");
     }
     
     public final void set_pollaccept(SelectableChannel handle_) {
-        register(handle_, SelectionKey.OP_ACCEPT, false);        
+        register(handle_, SelectionKey.OP_ACCEPT, false, "-");
     }
 
-    private final void register (SelectableChannel handle_, int ops, boolean negate)
+    private final void register (SelectableChannel handle_, int ops, boolean negate, String handleName)
     {
+        log.info("Registering handle " + handleName + " on poller " + this);
         PollSet pollset = fd_table.get(handle_);
         
         if (negate) 
@@ -201,6 +206,7 @@ public class Poller extends PollerBase implements Runnable {
             }
 
             //  Wait for events.
+            log.debug("Wait for events on " + this);
             int rc;
             long start = System.currentTimeMillis ();
             try {
@@ -208,7 +214,7 @@ public class Poller extends PollerBase implements Runnable {
             } catch (IOException e) {
                 throw new ZError.IOException (e);
             }
-            
+
             if (rc == 0) {
                 //  Guess JDK epoll bug
                 if (timeout == 0 ||
@@ -224,6 +230,7 @@ public class Poller extends PollerBase implements Runnable {
                 continue;
             }
 
+            log.debug("Received IO Event");
 
             Iterator<SelectionKey> it = selector.selectedKeys().iterator();
             while (it.hasNext()) {
@@ -279,5 +286,8 @@ public class Poller extends PollerBase implements Runnable {
         retired = true;
     }
 
-
+    @Override
+    public String toString() {
+        return name;
+    }
 }

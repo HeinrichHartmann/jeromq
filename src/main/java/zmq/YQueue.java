@@ -20,16 +20,36 @@
 */
 package zmq;
 
+/**
+ * Allocation-efficient queue class
+ *
+ * Memory is allocated as linked list of chunks of specified size:
+ *
+ * Chunk 0                   Chunk 1Allocation-efficient queue to store pipe items.
+ * [ 0 1 ... size-1 ] <---> [ size size+1 ... 2*size-1 ]
+ *
+ * Chunks are dynamically created when new elements are pushed to the queue
+ * and deleted when elements are popped from the queue. A spare chunk is
+ * held back to account for refill of the queue.
+ *
+ * @param <T>   type of elements to be held in the queue.
+ */
 public class YQueue<T> {
 
-    //  Individual memory chunk to hold N elements.
+    /**
+     *  Individual memory chunk to hold N elements.
+     */
     private class Chunk<T>
     {
-         final T[] values;
-         final int[] pos;
-         Chunk prev;
-         Chunk next;
+         final T[] values;  // values held by the chunk
+         final int[] pos;   // positions of values in global list
+         Chunk prev;        // pointer to prev chung
+         Chunk next;        // pointer to next chunk
 
+        /**
+         * @param size          allocated capacity of the chunk
+         * @param memory_ptr    index of the first element in global sorting
+         */
          protected Chunk(int size, int memory_ptr) {
              values = (T[]) new Object[size];
              pos = new int[size];
@@ -59,17 +79,19 @@ public class YQueue<T> {
 
     private int memory_ptr;
 
-
+    /**
+     * @param size  initial capacity of Queue
+     */
     public YQueue(int size) {
         this.size = size;
         memory_ptr = 0;
-        begin_chunk = new Chunk(size, memory_ptr);
-        memory_ptr += size;
-        begin_pos = 0;
-        back_pos = 0;
-        back_chunk = begin_chunk;
-        spare_chunk = begin_chunk;
-        end_chunk = begin_chunk;
+        begin_chunk = new Chunk(size, memory_ptr);  // pointer to first chunk of memory
+        memory_ptr += size;         // global index of next memory position to be allocated
+        begin_pos = 0;              // local index of first element in begin_chunk
+        back_pos = 0;               // local index of last element in back_chunnk
+        back_chunk = begin_chunk;   // pointer chunk that contians the last element
+        spare_chunk = begin_chunk;  // buffer chunk before deallocation
+        end_chunk = begin_chunk;    // ??
         end_pos = 1;
     }
 
@@ -105,8 +127,12 @@ public class YQueue<T> {
         return val;
     }
 
-    //  Adds an element to the back end of the queue.
+    /**
+     * Adds an element to the back end of the queue. Resizes queue if necessary.
+     * @param val
+     */
     public final void push(T val) {
+        // store value
         back_chunk.values [back_pos] = val;
         back_chunk = end_chunk;
         back_pos = end_pos;
@@ -115,12 +141,15 @@ public class YQueue<T> {
         if (end_pos != size)
             return;
 
+        // allocate new space
         Chunk sc = spare_chunk;
         if (sc != begin_chunk) {
+            // have spare chunk
             spare_chunk = spare_chunk.next;
             end_chunk.next = sc;
             sc.prev = end_chunk;
         } else {
+            // if no chunk spare allocate new chunk.
             end_chunk.next =  new Chunk(size, memory_ptr);
             memory_ptr += size;
             end_chunk.next.prev = end_chunk;
@@ -156,5 +185,31 @@ public class YQueue<T> {
             end_chunk = end_chunk.prev;
             end_chunk.next = null;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "YQueue{" + getFill() + "/" + getSize() + "}";
+    }
+
+    public int getSize(){
+        return size;
+    }
+
+    public int getFill(){
+        return back_pos() - front_pos();
+    }
+
+    public String contents() {
+        StringBuffer out = new StringBuffer();
+        int iter_start = begin_pos;
+        int iter_end   = size - 1;
+        for(Chunk<T> currentChunk = begin_chunk; currentChunk != end_chunk; currentChunk = currentChunk.next){
+            if (currentChunk == end_chunk) iter_end = end_pos;
+            for (int i = iter_start; i <= iter_end; i++ ) {
+                out.append(currentChunk.values[i] + " ");
+            }
+        }
+        return out.toString();
     }
 }

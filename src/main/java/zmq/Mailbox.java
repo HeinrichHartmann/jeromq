@@ -20,11 +20,15 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.nio.channels.SelectableChannel;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Mailbox {
+
+    private static Logger log = Logger.getLogger(Mailbox.class);
 
     //  The pipe to store actual commands.
     private final YPipe<Command> cpipe;
@@ -69,7 +73,9 @@ public class Mailbox {
     }
     
     public void send (final Command cmd_)
-    {   
+    {
+        log.debug(name + " -- " + cmd_ + " --> " + cmd_.destination() );
+
         boolean ok = false;
         sync.lock ();
         try {
@@ -112,7 +118,8 @@ public class Mailbox {
         //  Get a command.
         cmd_ = cpipe.read ();
         assert (cmd_ != null);
-        
+
+        log.debug("Received command " + cmd_);
         return cmd_;
     }
 

@@ -21,10 +21,14 @@
 
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.nio.channels.SelectableChannel;
 
 
 public class IOThread extends ZObject implements IPollEvents {
+
+    private static Logger log = Logger.getLogger(IOThread.class);
 
     //  I/O thread accesses incoming commands via this mailbox.
     final private Mailbox mailbox;
@@ -45,11 +49,13 @@ public class IOThread extends ZObject implements IPollEvents {
         mailbox = new Mailbox(name);
         mailbox_handle = mailbox.get_fd();
         poller.add_fd (mailbox_handle, this);
-        poller.set_pollin (mailbox_handle);
-        
+        poller.set_pollin (mailbox_handle, name + "-mailbox");
+
+        log.info("Creating IOThread ZObject: " + this);
     }
     
     public void start() {
+        log.info("Starting IO Multiplexing.");
         poller.start();
     }
     

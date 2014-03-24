@@ -21,10 +21,13 @@
 
 package zmq;
 
+import org.apache.log4j.Logger;
+
 //  Base class for all objects that participate in inter-thread
 //  communication.
 public abstract class ZObject {
 
+    private static Logger log = Logger.getLogger(ZObject.class);
 
     //  Context provides access to the global state.
     private final Ctx ctx;
@@ -52,6 +55,7 @@ public abstract class ZObject {
     }
     
     protected void process_command(Command cmd_) {
+        log.debug("Processing cmd " + cmd_ + " on Object " + this);
         switch (cmd_.type()) {
 
         case ACTIVATE_READ:
@@ -124,9 +128,9 @@ public abstract class ZObject {
 
     }
     
-    protected boolean register_endpoint (String addr_, Ctx.Endpoint endpoint_)
+    protected boolean register_endpoint (String addr_, Ctx.InprocEndpoint inprocEndpoint_)
     {
-        return ctx.register_endpoint (addr_, endpoint_);
+        return ctx.register_endpoint (addr_, inprocEndpoint_);
     }
     
     protected void unregister_endpoints (SocketBase socket_)
@@ -134,7 +138,7 @@ public abstract class ZObject {
         ctx.unregister_endpoints (socket_);
     }
     
-    protected Ctx.Endpoint find_endpoint (String addr_)
+    protected Ctx.InprocEndpoint find_endpoint (String addr_)
     {
         return ctx.find_endpoint (addr_);
     }

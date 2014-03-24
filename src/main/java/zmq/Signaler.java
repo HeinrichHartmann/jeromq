@@ -19,12 +19,14 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.Pipe;
 import java.util.concurrent.atomic.AtomicInteger;
 
 //  This is a cross-platform equivalent to signal_fd. However, as opposed
@@ -33,6 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 //  one will result in undefined behaviour.
 
 public class Signaler {
+
+    private static Logger log = Logger.getLogger(Signaler.class);
+
     //  Underlying write & read file descriptor.
     private Pipe.SinkChannel w;
     private Pipe.SourceChannel r;
@@ -42,10 +47,11 @@ public class Signaler {
     // Selector.selectNow at every sending message doesn't show enough performance
     private final AtomicInteger wcursor = new AtomicInteger(0);
     private int rcursor = 0;
-    
+
+
     public Signaler() {
         //  Create the socketpair for signaling.
-        make_fdpair ();
+        make_fdpair();
 
         //  Set both fds to non-blocking mode.
         try {
@@ -63,7 +69,6 @@ public class Signaler {
         }
         
         rdummy = ByteBuffer.allocate(1);
-
     }
     
     public void close() {
@@ -96,7 +101,7 @@ public class Signaler {
     
     public void send ()
     {
-        
+        log.debug("Sending one byte signal to chennel " + w);
         int nbytes = 0;
         ByteBuffer dummy = ByteBuffer.allocate(1);
         dummy.limit(1);
@@ -117,7 +122,7 @@ public class Signaler {
     }
 
     public boolean wait_event (long timeout_) {
-        
+        log.info("Waiting for events with timeout " + timeout_ );
         int rc = 0;
         
         try {
@@ -154,6 +159,7 @@ public class Signaler {
 
     public void recv ()
     {
+        log.debug("Reading from channel " + r);
         int nbytes = 0;
         while (nbytes == 0) {
             try {
@@ -163,6 +169,7 @@ public class Signaler {
                 throw new ZError.IOException(e);
             } 
         }
+        log.debug("Received bytes " + nbytes + " from channel " + r);
         rcursor ++;
     }
     

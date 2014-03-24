@@ -226,6 +226,6 @@ public class Msg {
 
     @Override
     public String toString() {
-        return String.format("#zmq.Msg{type=%s, size=%s, flags=%s}", type, size, flags);
+        return String.format("#zmq.Msg{type=%s, size=%s, flags=%s}('" + new String(data()) + "')", type, size, flags);
     }
 }

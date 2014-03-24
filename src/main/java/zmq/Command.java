@@ -97,6 +97,6 @@ public class Command {
     
     @Override
     public String toString() {
-        return super.toString() + "[" + type + ", " + destination + "]";
+        return "{ " + type + " }(" + arg + ")";
     }
 }

@@ -20,10 +20,13 @@
 */
 package zmq;
 
+import org.apache.log4j.BasicConfigurator;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class TestMonitor {
+
+    static { BasicConfigurator.configure(); }
 
     static class SocketMonitor extends Thread {
         
@@ -110,6 +113,7 @@ public class TestMonitor {
         // REP socket monitor, all events
         boolean rc = ZMQ.zmq_socket_monitor (rep, "inproc://monitor.rep", ZMQ.ZMQ_EVENT_ALL);
         assertEquals (true, rc);
+        //  Create the infrastructure
 
         threads [0] = new SocketMonitor (ctx, "inproc://monitor.rep");
         threads [0].start ();

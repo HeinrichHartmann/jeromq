@@ -21,12 +21,19 @@
 
 package zmq;
 
+import org.apache.log4j.BasicConfigurator;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 public class TestReqrepIpc {
-    
+
+    static {
+        BasicConfigurator.configure();
+    }
+
     @Test
     public void testReqrepIpc() {
         

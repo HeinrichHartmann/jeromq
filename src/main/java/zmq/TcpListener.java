@@ -20,12 +20,16 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 public class TcpListener extends Own implements IPollEvents {
+
+    private static final Logger log = Logger.getLogger(TcpListener.class);
 
     //  Address to listen on.
     private final TcpAddress address;
@@ -48,6 +52,7 @@ public class TcpListener extends Own implements IPollEvents {
         address = new TcpAddress();
         handle = null;
         socket = socket_;
+        log.info("Creating TCP Listener. " + this);
     }
     
     @Override
@@ -59,6 +64,7 @@ public class TcpListener extends Own implements IPollEvents {
     @Override
     protected void process_plug ()
     {
+        log.debug("Start polling for incoming connections on " + handle);
         //  Start polling for incoming connections.
         io_object.set_handler(this);
         io_object.add_fd (handle);
@@ -77,6 +83,7 @@ public class TcpListener extends Own implements IPollEvents {
     @Override
     public void accept_event ()
     {
+        log.info("Accept Event.");
         SocketChannel fd = null ;
         
         try {
@@ -133,6 +140,7 @@ public class TcpListener extends Own implements IPollEvents {
 
     //  Set address to listen on.
     public int set_address(final String addr_)  {
+        log.info("Binding tcp socket at " + addr_);
         address.resolve(addr_, options.ipv4only > 0 ? true : false);
         
         try {

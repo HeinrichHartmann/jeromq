@@ -21,19 +21,18 @@
 package org.zeromq;
 
 
+import org.apache.log4j.Logger;
+import zmq.*;
+import zmq.ZError.CtxTerminatedException;
+
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.charset.Charset;
 
-import zmq.Ctx;
-import zmq.DecoderBase;
-import zmq.EncoderBase;
-import zmq.SocketBase;
-import zmq.ZError;
-import zmq.ZError.CtxTerminatedException;
-
 public class ZMQ {
+
+    private static Logger log = Logger.getLogger(ZMQ.class);
 
     /**
      * Socket flag to indicate that more message parts are coming.
@@ -175,6 +174,7 @@ public class ZMQ {
      * @return the Context
      */
     public static Context context(int ioThreads) {
+        log.info("Creating Context.");
         return new Context(ioThreads);
     }
 
@@ -1004,6 +1004,7 @@ public class ZMQ {
          */
         public final int bind (String addr)
         {
+            log.info("Binding to " + this + " to " + addr);
             return bind (addr, DYNFROM, DYNTO);
         }
 

@@ -21,6 +21,8 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SelectableChannel;
@@ -32,6 +34,8 @@ import java.util.Map.Entry;
 
 public abstract class SocketBase extends Own
     implements IPollEvents, Pipe.IPipeEvents {
+
+    private static Logger log = Logger.getLogger(SocketBase.class);
 
     //  Map of open endpoints.
     private final Map<String, Own> endpoints;
@@ -76,6 +80,7 @@ public abstract class SocketBase extends Own
     private int monitor_events;
 
     protected ValueReference<Integer> errno;
+
 
     protected SocketBase (Ctx parent_, int tid_, int sid_)
     {
@@ -302,6 +307,7 @@ public abstract class SocketBase extends Own
 
     public boolean bind(final String addr)
     {
+        log.info("Binding " + this + " to address " + addr);
         if (ctx_terminated) {
             throw new ZError.CtxTerminatedException();
         }
@@ -327,8 +333,8 @@ public abstract class SocketBase extends Own
         check_protocol(protocol);
 
         if (protocol.equals("inproc")) {
-            Ctx.Endpoint endpoint = new Ctx.Endpoint(this, options);
-            boolean rc = register_endpoint(addr, endpoint);
+            Ctx.InprocEndpoint inprocEndpoint = new Ctx.InprocEndpoint(this, options);
+            boolean rc = register_endpoint(addr, inprocEndpoint);
             if (rc) {
                 // Save last endpoint URI
                 options.last_endpoint = addr;
@@ -420,7 +426,7 @@ public abstract class SocketBase extends Own
             //  is in place we should follow generic pipe creation algorithm.
 
             //  Find the peer endpoint.
-            Ctx.Endpoint peer = find_endpoint (addr_);
+            Ctx.InprocEndpoint peer = find_endpoint (addr_);
             if (peer.socket == null)
                 return false;
             // The total HWM for an inproc connection should be the sum of
@@ -431,6 +437,8 @@ public abstract class SocketBase extends Own
             int  rcvhwm = 0;
             if (options.rcvhwm != 0 && peer.options.sndhwm != 0)
                 rcvhwm = options.rcvhwm + peer.options.sndhwm;
+
+            log.debug("Creating bi-directional pipe between " + this + " and " + peer.socket + " with HWM " + sndhwm + "," + rcvhwm);
 
             //  Create a bi-directional pipe to connect the peers.
             ZObject[] parents = {this, peer.socket};
@@ -655,7 +663,7 @@ public abstract class SocketBase extends Own
 
 
     public Msg recv(int flags_) {
-
+        log.debug("Receiving message.");
         if (ctx_terminated) {
             errno.set(ZError.ETERM);
             return null;
@@ -766,12 +774,13 @@ public abstract class SocketBase extends Own
     //  Using this function reaper thread ask the socket to register with
     //  its poller.
     public void start_reaping(Poller poller_) {
+        log.debug("Reaping Poller " + poller_ + " at " + this);
 
         //  Plug the socket to the reaper thread.
         poller = poller_;
         handle = mailbox.get_fd();
         poller.add_fd (handle, this);
-        poller.set_pollin (handle);
+        poller.set_pollin (handle, "socket-mailbox");
 
         //  Initialise the termination and check whether it can be deallocated
         //  immediately.

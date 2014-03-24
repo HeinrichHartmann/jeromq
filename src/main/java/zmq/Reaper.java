@@ -19,9 +19,13 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.nio.channels.SelectableChannel;
 
 public class Reaper extends ZObject implements IPollEvents {
+
+    private static Logger log = Logger.getLogger(Reaper.class);
 
     //  Reaper thread accesses incoming commands via this mailbox.
     private final Mailbox mailbox;
@@ -52,7 +56,8 @@ public class Reaper extends ZObject implements IPollEvents {
         
         mailbox_handle = mailbox.get_fd();
         poller.add_fd (mailbox_handle, this);
-        poller.set_pollin (mailbox_handle);
+        poller.set_pollin(mailbox_handle, name + "-mailbox");
+         log.debug("Creating Reaper ZObject: " + this);
     }
 
     public void destroy () {
@@ -65,8 +70,8 @@ public class Reaper extends ZObject implements IPollEvents {
     }
     
     public void start() {
+        log.debug("Starting Reaper thread.");
         poller.start();
-        
     }
 
     public void stop() {

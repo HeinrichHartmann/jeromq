@@ -20,10 +20,32 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+/**
+ * Communication channel between threads.
+ *
+ * Write and read can be access by different threads.
+ * Items are kept in a buffer-area before they are accessible for reading.
+ * This reduces the number of atomic operations to be performed.
+ *
+ * Writer Thread     Queue                    Reader Thread
+ * -------------     -----                    --------------
+ *          push --> [ x x x y y y ... y] --> read
+ *                           |   |
+ *                           c = last flushed item (atomic int)
+ *                               |
+ *                               r = last prefetched item (int)
+ *
+ *
+ *
+ * @param <T>
+ */
 public class YPipe<T> {
+
+    private static final Logger log = Logger.getLogger(YPipe.class);
 
     //  Allocation-efficient queue to store pipe items.
     //  Front of the queue points to the first prefetched item, back of
@@ -52,7 +74,7 @@ public class YPipe<T> {
         queue = new YQueue<T>(qsize);
         w = r = f = queue.back_pos();
         c = new AtomicInteger(queue.back_pos());
-            
+        log.debug("Created " + this );
     }
 
     //  Write an item to the pipe.  Don't flush it yet. If incomplete is
@@ -68,13 +90,14 @@ public class YPipe<T> {
         if (!incomplete_) {
             f = queue.back_pos();
         }
+        log.debug("Wrote " + value_ + " to pipe " + this);
     }
     
     //  Pop an incomplete item from the pipe. Returns true is such
     //  item exists, false otherwise.
     public T unwrite ()
     {
-        
+        log.debug("Unwriting pipe " + this);
         if (f == queue.back_pos())
             return null;
         queue.unpush();
@@ -86,6 +109,7 @@ public class YPipe<T> {
     //  wake the reader up before using the pipe again.
     public final boolean flush ()
     {
+        log.debug("Flushing pipe " + this);
         //  If there are no un-flushed items, do nothing.
         if (w == f) {
             return true;
@@ -153,7 +177,8 @@ public class YPipe<T> {
         //  There was at least one value prefetched.
         //  Return it to the caller.
         T value_ = queue.pop();
-        
+
+        log.debug("Read object " + value_ + " from pipe " + this);
         return value_;
     }
     
@@ -162,13 +187,17 @@ public class YPipe<T> {
     //  and returns the value returned by the fn.
     //  The pipe mustn't be empty or the function crashes.
     public final T probe() {
-        
         boolean rc = check_read ();
         assert (rc);
         
         T value = queue.front ();
+        log.debug("Probing queue " + this + ". Retrieved " + value);
         return value;
     }
 
+    @Override
+    public String toString() {
+        return "YPipe{" + queue.getFill() + "/" + queue.getSize() + "}";
+    }
 
 }

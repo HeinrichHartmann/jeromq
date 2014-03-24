@@ -68,9 +68,9 @@ public class IOObject implements IPollEvents {
         poller.rm_fd(handle);
     }
     
-    public final void set_pollin (SelectableChannel handle_)
+    public final void set_pollin (SelectableChannel handle_, String name)
     {
-        poller.set_pollin (handle_);
+        poller.set_pollin (handle_, name);
     }
 
     public final void set_pollout (SelectableChannel handle_)

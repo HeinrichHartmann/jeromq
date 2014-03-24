@@ -20,6 +20,8 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -37,20 +39,25 @@ import java.util.concurrent.locks.ReentrantLock;
 //  the library.
 
 public class Ctx {
-    
+
+    private static Logger log = Logger.getLogger(Ctx.class);
+
     //  Information associated with inproc endpoint. Note that endpoint options
     //  are registered as well so that the peer can access them without a need
     //  for synchronisation, handshaking or similar.
     
-    public static class Endpoint {
+    public static class InprocEndpoint {
         SocketBase socket;
         Options options;
         
-        public Endpoint(SocketBase socket_, Options options_) {
+        public InprocEndpoint(SocketBase socket_, Options options_) {
             socket = socket_;
             options = options_;
         }
 
+        public String toString() {
+            return options.last_endpoint;
+        }
     }
     //  Used to check whether the object is a context.
     private int tag;
@@ -90,7 +97,7 @@ public class Ctx {
     private final Mailbox term_mailbox;
 
     //  List of inproc endpoints within this context.
-    private final Map<String, Endpoint> endpoints;
+    private final Map<String, InprocEndpoint> endpoints;
 
     //  Synchronisation of access to the list of inproc endpoints.
     private final Lock endpoints_sync;
@@ -129,7 +136,7 @@ public class Ctx {
         empty_slots = new ArrayDeque<Integer>();
         io_threads = new ArrayList<IOThread>();
         sockets = new ArrayList<SocketBase>();
-        endpoints = new HashMap<String, Endpoint>();
+        endpoints = new HashMap<String, InprocEndpoint>();
 
     }
     
@@ -244,6 +251,7 @@ public class Ctx {
     
     public SocketBase create_socket (int type_)
     {
+        log.info("Creating socket of type " +type_);
         SocketBase s = null;
         slot_sync.lock ();
         try {
@@ -380,12 +388,13 @@ public class Ctx {
     }
     
     //  Management of inproc endpoints.
-    public boolean register_endpoint(String addr_, Endpoint endpoint_) {
+    public boolean register_endpoint(String addr_, InprocEndpoint inprocEndpoint_) {
+        log.info("Register inproc endpoint " + addr_);
         endpoints_sync.lock ();
 
-        Endpoint inserted = null;
+        InprocEndpoint inserted = null;
         try {
-            inserted = endpoints.put(addr_, endpoint_);
+            inserted = endpoints.put(addr_, inprocEndpoint_);
         } finally {
             endpoints_sync.unlock ();
         }
@@ -400,9 +409,9 @@ public class Ctx {
         endpoints_sync.lock ();
 
         try {
-            Iterator<Entry<String, Endpoint>> it = endpoints.entrySet().iterator();
+            Iterator<Entry<String, InprocEndpoint>> it = endpoints.entrySet().iterator();
             while (it.hasNext()) {
-                Entry<String, Endpoint> e = it.next();
+                Entry<String, InprocEndpoint> e = it.next();
                 if (e.getValue().socket == socket_) {
                     it.remove();
                     continue;
@@ -414,26 +423,26 @@ public class Ctx {
     }
     
 
-    public Endpoint find_endpoint (String addr_)
+    public InprocEndpoint find_endpoint (String addr_)
     {
-        Endpoint endpoint = null;
+        InprocEndpoint inprocEndpoint = null;
         endpoints_sync.lock ();
 
         try {
-            endpoint = endpoints.get(addr_);
-            if (endpoint == null) {
+            inprocEndpoint = endpoints.get(addr_);
+            if (inprocEndpoint == null) {
                 //ZError.errno(ZError.ECONNREFUSED);
-                return new Endpoint(null, new Options());
+                return new InprocEndpoint(null, new Options());
             }
     
             //  Increment the command sequence number of the peer so that it won't
             //  get deallocated until "bind" command is issued by the caller.
             //  The subsequent 'bind' has to be called with inc_seqnum parameter
             //  set to false, so that the seqnum isn't incremented twice.
-            endpoint.socket.inc_seqnum ();
+            inprocEndpoint.socket.inc_seqnum ();
         } finally {
             endpoints_sync.unlock ();
         }
-        return endpoint;
+        return inprocEndpoint;
     }
 }

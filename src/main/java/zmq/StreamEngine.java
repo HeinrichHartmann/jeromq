@@ -20,6 +20,8 @@
 */
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -28,6 +30,9 @@ import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 
 public class StreamEngine implements IEngine, IPollEvents, IMsgSink {
+
+    private static final Logger log = Logger.getLogger(StreamEngine.class);
+
     //  Size of the greeting message:
     //  Preamble (10 bytes) + version (1 byte) + socket type (1 byte).
     private static final int GREETING_SIZE = 12;
@@ -220,7 +225,7 @@ public class StreamEngine implements IEngine, IPollEvents, IMsgSink {
         greeting_output_buffer.putLong (options.identity_size + 1);
         greeting_output_buffer.put ((byte) 0x7f);
 
-        io_object.set_pollin (handle);
+        io_object.set_pollin (handle, "IO Handle");
         //  When there's a raw custom encoder, we don't send 10 bytes frame
         boolean custom = false;
         try {
@@ -276,7 +281,7 @@ public class StreamEngine implements IEngine, IPollEvents, IMsgSink {
     @Override
     public void in_event () 
     {
-        
+        log.debug("Readable event.");
         //  If still handshaking, receive and process the greeting message.
         if (handshaking)
             if (!handshake ())
@@ -302,7 +307,7 @@ public class StreamEngine implements IEngine, IPollEvents, IMsgSink {
                 disconnection = true;
             }
         }
-
+        log.debug("Filled buffer " + inbuf + " with " + insize + ".");
         //  Push the data to the decoder.
         int processed = decoder.process_buffer (inbuf, insize);
 
@@ -451,7 +456,7 @@ public class StreamEngine implements IEngine, IPollEvents, IMsgSink {
             return;
         }
 
-        io_object.set_pollin (handle);
+        io_object.set_pollin (handle, "IO Handle");
 
         //  Speculative read.
         io_object.in_event ();
@@ -459,6 +464,7 @@ public class StreamEngine implements IEngine, IPollEvents, IMsgSink {
     
     private boolean handshake ()
     {
+        log.info("Handshaking " + this);
         assert (handshaking);
 
         //  Receive the greeting.

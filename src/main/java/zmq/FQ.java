@@ -22,6 +22,8 @@
 
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +31,8 @@ import java.util.List;
 //  queueing so that senders gone berserk won't cause denial of
 //  service for decent senders.
 public class FQ {
+
+    public static final Logger log = Logger.getLogger(FQ.class);
 
     //  Inbound pipes.
     private final List<Pipe> pipes;
@@ -76,6 +80,7 @@ public class FQ {
 
     public void activated (Pipe pipe_)
     {
+        log.debug("Moving pipe " + pipe_ + " to the list of active pipes.");
         //  Move the pipe to the list of active pipes.
         Utils.swap(pipes, pipes.indexOf (pipe_), active);
         active++;
@@ -87,7 +92,7 @@ public class FQ {
     }
 
     public Msg recvpipe(ValueReference<Integer> errno, ValueReference<Pipe> pipe_) {
-
+        log.debug("Reading message from pipe " + pipe_);
         //  Round-robin over the pipes to get the next message.
         while (active > 0) {
 

@@ -1,10 +1,14 @@
 package zmq;
 
+import org.apache.log4j.Logger;
+
 import java.nio.ByteBuffer;
 
 public class V1Decoder extends DecoderBase
 {
-    
+
+    private static final Logger log = Logger.getLogger(V1Decoder.class);
+
     private static final int one_byte_size_ready = 0;
     private static final int eight_byte_size_ready = 1;
     private static final int flags_ready = 2;
@@ -130,6 +134,7 @@ public class V1Decoder extends DecoderBase
     }
     
     private boolean message_ready() {
+        log.debug("Message completely read. Pushing to sink.");
         //  Message is completely read. Push it further and start reading
         //  new message. (in_progress is a 0-byte message after this point.)
         
